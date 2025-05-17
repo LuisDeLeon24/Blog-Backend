@@ -29,20 +29,23 @@ export const getPublications = async (req, res) => {
 
   try {
     const publications = await Publications.find(query)
-      .populate('comments', 'author content');
+      .populate('comments'); // sin limitar campos
 
-    // Desestructuramos los campos si queremos devolver solo los necesarios
     const formatted = publications.map(pub => {
-      const { title, description, category, comments,photos } = pub;
+      const { _id, title, description, category, comments, photos } = pub;
       return {
+        _id,
         title,
         description,
         category,
+        photos,
         comments: comments.map(c => ({
+          _id: c._id,
           author: c.author,
-          content: c.content
-        })),
-        photos
+          content: c.content,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt
+        }))
       };
     });
 
@@ -64,7 +67,7 @@ export const getPublicationsByCat = async (req, res) => {
 
   try {
     const publications = await Publications.find({ category, status: true })
-      .populate('comments', 'author content'); 
+      .populate('comments');
 
     if (publications.length === 0) {
       return res.status(404).json({
@@ -82,8 +85,11 @@ export const getPublicationsByCat = async (req, res) => {
         category,
         photos,
         comments: comments.map(c => ({
+          _id: c._id,
           author: c.author,
-          content: c.content
+          content: c.content,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt
         }))
       };
     });
@@ -104,14 +110,13 @@ export const getPublicationsByCat = async (req, res) => {
 };
 
 
-
 export const searchPublication = async (req, res) => {
   const { id } = req.params;
 
   try {
     const post = await Publications.findById(id)
       .populate("category", "name")
-      .populate("comments", "author content"); 
+      .populate("comments"); // sin limitar campos
 
     if (!post) {
       return res.status(404).json({
@@ -120,10 +125,22 @@ export const searchPublication = async (req, res) => {
       });
     }
 
+    // Mapear los comentarios si se quiere controlar lo que se envía:
+    const formattedPost = {
+      ...post._doc,
+      comments: post.comments.map(c => ({
+        _id: c._id,
+        author: c.author,
+        content: c.content,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt
+      }))
+    };
+
     res.status(200).json({
       success: true,
       message: "[controller] Éxito: Post encontrado.",
-      post
+      post: formattedPost
     });
 
   } catch (error) {
@@ -134,6 +151,7 @@ export const searchPublication = async (req, res) => {
     });
   }
 };
+
 
 
 
